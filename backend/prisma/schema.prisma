@@ -1,0 +1,173 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum VehicleType {
+  CAR
+  MOTORCYCLE
+  TRUCK
+  OTHER
+}
+
+enum ReminderType {
+  MILEAGE
+  TIME
+  DATE
+}
+
+model User {
+  id            String         @id @default(cuid())
+  name          String
+  email         String         @unique
+  password      String
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  vehicles      Vehicle[]
+  notifications Notification[]
+}
+
+model Vehicle {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  type          VehicleType @default(CAR)
+  make          String
+  model         String
+  year          Int
+  licensePlate  String?
+  vin           String?
+  mileage       Int         @default(0)
+  purchaseDate  DateTime?
+  purchasePrice Float?
+  fuelType      String?
+  engineSize    String?
+  notes         String?
+  imageUrl      String?
+  isDefault     Boolean     @default(false)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  fuelRecords        FuelRecord[]
+  maintenanceRecords MaintenanceRecord[]
+  repairs            Repair[]
+  expenses           Expense[]
+  reminders          Reminder[]
+
+  @@index([userId])
+}
+
+model FuelRecord {
+  id            String   @id @default(cuid())
+  vehicleId     String
+  vehicle       Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  date          DateTime
+  mileage       Int
+  liters        Float
+  pricePerLiter Float
+  totalCost     Float
+  station       String?
+  fuelType      String?
+  fullTank      Boolean  @default(true)
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([vehicleId, date])
+}
+
+model MaintenanceRecord {
+  id          String   @id @default(cuid())
+  vehicleId   String
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  date        DateTime
+  mileage     Int
+  serviceType String
+  description String?
+  cost        Float    @default(0)
+  provider    String?
+  parts       String?
+  notes       String?
+  receiptUrl  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([vehicleId, date])
+}
+
+model Repair {
+  id          String   @id @default(cuid())
+  vehicleId   String
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  date        DateTime
+  mileage     Int
+  problem     String
+  description String?
+  parts       String?
+  partsCost   Float    @default(0)
+  laborCost   Float    @default(0)
+  totalCost   Float    @default(0)
+  shop        String?
+  warranty    String?
+  notes       String?
+  receiptUrl  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([vehicleId, date])
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  vehicleId   String
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  date        DateTime
+  category    String
+  description String?
+  amount      Float
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([vehicleId, date])
+}
+
+model Reminder {
+  id             String        @id @default(cuid())
+  vehicleId      String
+  vehicle        Vehicle       @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  title          String
+  type           ReminderType  @default(MILEAGE)
+  dueDate        DateTime?
+  dueMileage     Int?
+  repeatInterval Int?
+  repeatUnit     String?
+  description    String?
+  notified       Boolean       @default(false)
+  completed      Boolean       @default(false)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  notifications  Notification[]
+
+  @@index([vehicleId])
+}
+
+model Notification {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reminderId String?
+  reminder   Reminder? @relation(fields: [reminderId], references: [id], onDelete: Cascade)
+  title      String
+  body       String
+  level      String    @default("info")
+  read       Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+
+  @@index([userId, read])
+}
